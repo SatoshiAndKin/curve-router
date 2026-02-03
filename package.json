@@ -7,9 +7,7 @@
   },
   "scripts": {
     "start": "tsx src/server.ts",
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "tsx --watch src/server.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
@@ -31,7 +29,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
-    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }
 }

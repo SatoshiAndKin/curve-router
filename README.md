@@ -1,17 +1,43 @@
 # flashprofits-curve-api
 
-Static web app for finding optimal swap routes on Curve Finance. Runs entirely in the browser using [@curvefi/api](https://www.npmjs.com/package/@curvefi/api).
+Node.js HTTP service for finding optimal swap routes on Curve Finance using [@curvefi/api](https://www.npmjs.com/package/@curvefi/api).
 
 ## Usage
 
-Visit the deployed site and enter:
-- **From**: Source token address (e.g., DAI)
-- **To**: Destination token address (e.g., USDC)
-- **Amount**: Amount to swap
+### API Endpoint
 
-The app will find the best route across all Curve pools.
+```
+GET /route?from=<address>&to=<address>&amount=<amount>&sender=<address>
+```
 
-**Common Token Addresses (Ethereum Mainnet):**
+**Parameters:**
+- `from` (required): Source token address
+- `to` (required): Destination token address
+- `amount` (optional, default: 1): Amount to swap
+- `sender` (optional): Sender address for approval check
+
+**Response:**
+```json
+{
+  "from": "0x...",
+  "from_symbol": "DAI",
+  "to": "0x...",
+  "to_symbol": "USDC",
+  "amount": "1000",
+  "output": "999.85",
+  "route": [...],
+  "router_address": "0x...",
+  "calldata": "0x...",
+  "approval_target": "0x...",
+  "approval_calldata": "0x..."
+}
+```
+
+### Web UI
+
+Visit `http://localhost:3000` for a web interface.
+
+### Common Token Addresses (Ethereum Mainnet)
 
 | Token | Address |
 |-------|---------|
@@ -21,47 +47,37 @@ The app will find the best route across all Curve pools.
 | WETH | `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` |
 | CRV | `0xD533a949740bb3306d119CC777fa900bA034cd52` |
 
+## Running
+
+### With Docker
+
+```bash
+cp .env.example .env  # Edit as needed
+docker compose up --build
+```
+
+### Without Docker
+
+```bash
+npm install
+npm start
+```
+
+## Configuration
+
+Environment variables (via `.env` file or environment):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `RPC_URL` | `http://ski-nuc-3a:8545` | Ethereum JSON-RPC endpoint |
+| `PORT` | `3000` | HTTP server port |
+| `HOST` | `0.0.0.0` | HTTP server host |
+
 ## Development
 
-### Requirements
-
-- Node.js >= 20
-
-### Setup
-
 ```bash
-curl -fsSL https://fnm.vercel.app/install | bash
-# Add `fnm env | source` to your shell config, then restart terminal
-fnm install
-npm install
-```
-
-### Run locally
-
-```bash
-npm run dev
-```
-
-Opens a local server at http://localhost:3000
-
-### Testing
-
-```bash
+npm run dev      # Run with auto-reload
+npm run typecheck
+npm run lint
 npm test
-npm run test:coverage
 ```
-
-## Deployment
-
-Automatically deploys to GitHub Pages on push to `main` via GitHub Actions.
-
-## Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Serve public/ locally |
-| `npm run typecheck` | Type check src/ |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format with Prettier |
-| `npm test` | Run tests |
-| `npm run test:coverage` | Run tests with coverage |

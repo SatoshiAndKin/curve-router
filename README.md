@@ -87,7 +87,7 @@ Restart your terminal, then:
 fnm install
 ```
 
-This will automatically install the correct Node.js version from `.node-version`.
+This will automatically install the Node.js version specified in `.node-version`.
 
 ### Install dependencies
 

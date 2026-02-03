@@ -177,15 +177,20 @@ const INDEX_HTML = `<!DOCTYPE html>
 
     function formatRoute(route) {
       if (!route || route.length === 0) return '<div class="field-value">No route found</div>';
-      return route.map((step, i) => \`
+      return route.map((step, i) => {
+        const poolName = step.poolName || step.poolId || 'Unknown Pool';
+        const showPoolId = step.poolName && step.poolId && step.poolName !== step.poolId;
+        return \`
         <div class="route-step">
-          <div class="route-step-header">Step \${i + 1}: \${step.poolId || 'Unknown Pool'}</div>
+          <div class="route-step-header">Step \${i + 1}: \${poolName}\${showPoolId ? ' <span style="color: #888; font-size: 11px;">' + step.poolId + '</span>' : ''}</div>
+          <div class="field-label">Pool Address</div>
+          <div class="field-value"><span style="color: #888; font-size: 11px;">\${step.poolAddress || ''}</span></div>
           <div class="field-label">Input</div>
           <div class="field-value">\${step.inputCoin ? step.inputCoin + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.inputCoinAddress}</span></div>
           <div class="field-label">Output</div>
           <div class="field-value">\${step.outputCoin ? step.outputCoin + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.outputCoinAddress}</span></div>
         </div>
-      \`).join('');
+      \`}).join('');
     }
 
     function showResult(data) {

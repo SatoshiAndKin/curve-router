@@ -43,7 +43,7 @@ interface RouteResult {
   route: RouteStep[];
   route_symbols: Record<string, string>;
   router_address: string;
-  calldata: string;
+  router_calldata: string;
   approval_target?: string;
   approval_calldata?: string;
 }
@@ -110,7 +110,7 @@ async function findRoute(
     route: typedRoute,
     route_symbols: routeSymbols,
     router_address: swapTx.to,
-    calldata: swapTx.data,
+    router_calldata: swapTx.data,
   };
 
   if (sender && ADDRESS_REGEX.test(sender)) {
@@ -249,10 +249,6 @@ const INDEX_HTML = `<!DOCTYPE html>
           <div class="field-label">Output Amount</div>
           <div class="field-value number">\${data.output}</div>
         </div>
-        <div class="field">
-          <div class="field-label">Route (\${data.route.length} steps)</div>
-          \${formatRoute(data.route, symbols)}
-        </div>
         \${data.approval_target ? \`
         <div class="field">
           <div class="field-label">Approval Target</div>
@@ -264,12 +260,16 @@ const INDEX_HTML = `<!DOCTYPE html>
         </div>
         \` : ''}
         <div class="field">
+          <div class="field-label">Route (\${data.route.length} steps)</div>
+          \${formatRoute(data.route, symbols)}
+        </div>
+        <div class="field">
           <div class="field-label">Router Address</div>
           <div class="field-value">\${data.router_address}</div>
         </div>
         <div class="field">
-          <div class="field-label">Calldata</div>
-          <div class="field-value" style="font-size: 11px;">\${data.calldata}</div>
+          <div class="field-label">Router Calldata</div>
+          <div class="field-value" style="font-size: 11px;">\${data.router_calldata}</div>
         </div>
       \`;
     }

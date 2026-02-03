@@ -6,6 +6,7 @@
     "node": ">=20"
   },
   "scripts": {
+    "start": "tsx src/server.ts",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",

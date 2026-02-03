@@ -4,9 +4,7 @@ export interface RouteParams {
   amount: string;
 }
 
-export type ParseResult =
-  | { success: true; data: RouteParams }
-  | { success: false; error: string };
+export type ParseResult = { success: true; data: RouteParams } | { success: false; error: string };
 
 const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
 

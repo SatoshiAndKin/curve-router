@@ -25,6 +25,14 @@ async function getTokenSymbol(address: string): Promise<string> {
   }
 }
 
+interface RouteStep {
+  poolId?: string;
+  poolName?: string;
+  poolAddress?: string;
+  inputCoinAddress?: string;
+  outputCoinAddress?: string;
+}
+
 interface RouteResult {
   from: string;
   from_symbol: string;
@@ -32,7 +40,8 @@ interface RouteResult {
   to_symbol: string;
   amount: string;
   output: string;
-  route: unknown[];
+  route: RouteStep[];
+  route_symbols: Record<string, string>;
   router_address: string;
   calldata: string;
   approval_target?: string;
@@ -67,6 +76,24 @@ async function findRoute(
     getTokenSymbol(to),
   ]);
 
+  const typedRoute = route as RouteStep[];
+
+  // Collect all unique token addresses from the route
+  const tokenAddresses = new Set<string>();
+  for (const step of typedRoute) {
+    if (step.inputCoinAddress) tokenAddresses.add(step.inputCoinAddress.toLowerCase());
+    if (step.outputCoinAddress) tokenAddresses.add(step.outputCoinAddress.toLowerCase());
+  }
+
+  // Fetch symbols for all intermediate tokens
+  const routeSymbols: Record<string, string> = {};
+  await Promise.all(
+    Array.from(tokenAddresses).map(async (addr) => {
+      const symbol = await getTokenSymbol(addr);
+      if (symbol) routeSymbols[addr] = symbol;
+    })
+  );
+
   const swapTx = await curve.router.populateSwap(from, to, amount);
 
   if (!swapTx.to || !swapTx.data) {
@@ -80,7 +107,8 @@ async function findRoute(
     to_symbol: toSymbol,
     amount,
     output,
-    route,
+    route: typedRoute,
+    route_symbols: routeSymbols,
     router_address: swapTx.to,
     calldata: swapTx.data,
   };
@@ -175,25 +203,33 @@ const INDEX_HTML = `<!DOCTYPE html>
     const result = document.getElementById('result');
     const submit = document.getElementById('submit');
 
-    function formatRoute(route) {
+    function formatRoute(route, symbols) {
       if (!route || route.length === 0) return '<div class="field-value">No route found</div>';
       return route.map((step, i) => {
         const poolName = step.poolName || step.poolId || 'Unknown Pool';
         const showPoolId = step.poolName && step.poolId && step.poolName !== step.poolId;
+        const inputSymbol = symbols[step.inputCoinAddress?.toLowerCase()] || '';
+        const outputSymbol = symbols[step.outputCoinAddress?.toLowerCase()] || '';
         return \`
         <div class="route-step">
           <div class="route-step-header">Step \${i + 1}: \${poolName}\${showPoolId ? ' <span style="color: #888; font-size: 11px;">' + step.poolId + '</span>' : ''}</div>
           <div class="field-label">Pool Address</div>
           <div class="field-value"><span style="color: #888; font-size: 11px;">\${step.poolAddress || ''}</span></div>
           <div class="field-label">Input</div>
-          <div class="field-value">\${step.inputCoin ? step.inputCoin + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.inputCoinAddress}</span></div>
+          <div class="field-value">\${inputSymbol ? inputSymbol + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.inputCoinAddress}</span></div>
           <div class="field-label">Output</div>
-          <div class="field-value">\${step.outputCoin ? step.outputCoin + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.outputCoinAddress}</span></div>
+          <div class="field-value">\${outputSymbol ? outputSymbol + ' ' : ''}<span style="color: #888; font-size: 11px;">\${step.outputCoinAddress}</span></div>
         </div>
       \`}).join('');
     }
 
     function showResult(data) {
+      const symbols = {};
+      symbols[data.from.toLowerCase()] = data.from_symbol;
+      symbols[data.to.toLowerCase()] = data.to_symbol;
+      if (data.route_symbols) {
+        Object.entries(data.route_symbols).forEach(([k, v]) => { symbols[k.toLowerCase()] = v; });
+      }
       result.className = 'show';
       result.innerHTML = \`
         <div class="result-header">Route Found</div>
@@ -215,15 +251,7 @@ const INDEX_HTML = `<!DOCTYPE html>
         </div>
         <div class="field">
           <div class="field-label">Route (\${data.route.length} steps)</div>
-          \${formatRoute(data.route)}
-        </div>
-        <div class="field">
-          <div class="field-label">Router Address</div>
-          <div class="field-value">\${data.router_address}</div>
-        </div>
-        <div class="field">
-          <div class="field-label">Calldata</div>
-          <div class="field-value" style="font-size: 11px;">\${data.calldata}</div>
+          \${formatRoute(data.route, symbols)}
         </div>
         \${data.approval_target ? \`
         <div class="field">
@@ -235,6 +263,14 @@ const INDEX_HTML = `<!DOCTYPE html>
           <div class="field-value" style="font-size: 11px;">\${data.approval_calldata}</div>
         </div>
         \` : ''}
+        <div class="field">
+          <div class="field-label">Router Address</div>
+          <div class="field-value">\${data.router_address}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Calldata</div>
+          <div class="field-value" style="font-size: 11px;">\${data.calldata}</div>
+        </div>
       \`;
     }
 

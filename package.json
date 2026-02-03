@@ -6,12 +6,14 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "npx serve public",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "format": "prettier --write src/ public/",
-    "format:check": "prettier --check src/ public/",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -28,6 +30,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.54.0",
+    "vite": "^7.3.1",
     "vitest": "^4.0.18"
   }
 }

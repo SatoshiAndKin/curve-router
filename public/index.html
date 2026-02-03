@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Curve Route Finder</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+    h1 { margin-bottom: 20px; }
+    form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    label { font-weight: 600; }
+    input { padding: 8px; font-size: 14px; font-family: monospace; }
+    button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    #status { padding: 10px; background: #f0f0f0; border-radius: 4px; margin-bottom: 20px; }
+    #result { white-space: pre-wrap; font-family: monospace; background: #1e1e1e; color: #d4d4d4; padding: 16px; border-radius: 4px; overflow-x: auto; }
+    .error { color: #e74c3c; }
+  </style>
+</head>
+<body>
+  <h1>Curve Route Finder</h1>
+  
+  <div id="status">Initializing Curve API...</div>
+  
+  <form id="form">
+    <label>
+      From (token address):
+      <input type="text" id="from" placeholder="0x6B175474E89094C44Da98b954EedeAC495271d0F" value="0x6B175474E89094C44Da98b954EedeAC495271d0F" style="width: 100%;">
+    </label>
+    <label>
+      To (token address):
+      <input type="text" id="to" placeholder="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" value="0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48" style="width: 100%;">
+    </label>
+    <label>
+      Amount:
+      <input type="text" id="amount" value="1000" style="width: 200px;">
+    </label>
+    <button type="submit" id="submit" disabled>Find Route</button>
+  </form>
+  
+  <div id="result"></div>
+
+  <script type="module">
+    import curve from "https://esm.sh/@curvefi/api";
+
+    const RPC_URL = "https://eth.llamarpc.com";
+    
+    const statusEl = document.getElementById("status");
+    const formEl = document.getElementById("form");
+    const submitEl = document.getElementById("submit");
+    const resultEl = document.getElementById("result");
+
+    async function init() {
+      try {
+        statusEl.textContent = "Connecting to Ethereum...";
+        await curve.init("JsonRpc", { url: RPC_URL }, { chainId: 1 });
+        
+        statusEl.textContent = "Fetching pools...";
+        await Promise.all([
+          curve.factory.fetchPools(),
+          curve.crvUSDFactory.fetchPools(),
+          curve.cryptoFactory.fetchPools(),
+          curve.twocryptoFactory.fetchPools(),
+          curve.tricryptoFactory.fetchPools(),
+          curve.stableNgFactory.fetchPools(),
+        ]);
+        
+        statusEl.textContent = "Ready";
+        submitEl.disabled = false;
+      } catch (err) {
+        statusEl.innerHTML = `<span class="error">Init failed: ${err.message}</span>`;
+      }
+    }
+
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const from = document.getElementById("from").value.trim();
+      const to = document.getElementById("to").value.trim();
+      const amount = document.getElementById("amount").value.trim();
+
+      const addressRegex = /^0x[a-fA-F0-9]{40}$/;
+      if (!addressRegex.test(from) || !addressRegex.test(to)) {
+        resultEl.innerHTML = `<span class="error">Invalid address format</span>`;
+        return;
+      }
+
+      submitEl.disabled = true;
+      resultEl.textContent = "Finding best route...";
+
+      try {
+        const { route, output } = await curve.router.getBestRouteAndOutput(from, to, amount);
+        
+        resultEl.textContent = JSON.stringify({
+          from,
+          to,
+          amount,
+          output,
+          route,
+        }, null, 2);
+      } catch (err) {
+        resultEl.innerHTML = `<span class="error">Error: ${err.message}</span>`;
+      } finally {
+        submitEl.disabled = false;
+      }
+    });
+
+    init();
+  </script>
+</body>
+</html>

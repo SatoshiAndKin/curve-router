@@ -48,20 +48,31 @@ interface RouteResult {
   approval_calldata?: string;
 }
 
+function log(message: string) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] ${message}`);
+}
+
+function logError(message: string, err?: unknown) {
+  const timestamp = new Date().toISOString();
+  console.error(`[${timestamp}] ERROR: ${message}`, err instanceof Error ? err.message : err || "");
+}
+
 async function initCurve() {
-  console.log(`Connecting to Ethereum at ${RPC_URL}...`);
+  log(`Connecting to Ethereum at ${RPC_URL}`);
   await curve.init("JsonRpc", { url: RPC_URL }, { chainId: 1 });
 
-  console.log("Fetching pools...");
-  await Promise.all([
-    curve.factory.fetchPools(),
-    curve.crvUSDFactory.fetchPools(),
-    curve.cryptoFactory.fetchPools(),
-    curve.twocryptoFactory.fetchPools(),
-    curve.tricryptoFactory.fetchPools(),
-    curve.stableNgFactory.fetchPools(),
-  ]);
-  console.log("Curve API initialized");
+  log("Fetching Curve pools...");
+  const poolTypes = [
+    { name: "factory", fetch: () => curve.factory.fetchPools() },
+    { name: "crvUSD", fetch: () => curve.crvUSDFactory.fetchPools() },
+    { name: "crypto", fetch: () => curve.cryptoFactory.fetchPools() },
+    { name: "twocrypto", fetch: () => curve.twocryptoFactory.fetchPools() },
+    { name: "tricrypto", fetch: () => curve.tricryptoFactory.fetchPools() },
+    { name: "stableNg", fetch: () => curve.stableNgFactory.fetchPools() },
+  ];
+  await Promise.all(poolTypes.map((p) => p.fetch()));
+  log(`Curve API initialized (${poolTypes.map((p) => p.name).join(", ")} pools loaded)`);
 }
 
 async function findRoute(
@@ -373,16 +384,24 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       return;
     }
 
+    const startTime = Date.now();
     try {
       const result = await findRoute(from, to, amount, sender);
+      const duration = Date.now() - startTime;
+      log(
+        `Route: ${result.from_symbol || from.slice(0, 10)} -> ${result.to_symbol || to.slice(0, 10)}, ` +
+          `amount=${amount}, output=${result.output}, steps=${result.route.length}, ${duration}ms`
+      );
       sendJson(res, 200, result);
     } catch (err) {
-      console.error("Route error:", err);
+      const duration = Date.now() - startTime;
+      logError(`Route failed: ${from.slice(0, 10)} -> ${to.slice(0, 10)}, ${duration}ms`, err);
       sendError(res, 500, err instanceof Error ? err.message : "Unknown error");
     }
     return;
   }
 
+  log(`404: ${req.method} ${url.pathname}`);
   sendError(res, 404, "Not found");
 }
 
@@ -391,11 +410,11 @@ async function main() {
 
   const server = http.createServer(handleRequest);
   server.listen(PORT, HOST, () => {
-    console.log(`Server listening on http://${HOST}:${PORT}`);
+    log(`Server listening on http://${HOST}:${PORT}`);
   });
 }
 
 main().catch((err) => {
-  console.error("Failed to start server:", err);
+  logError("Failed to start server", err);
   process.exit(1);
 });

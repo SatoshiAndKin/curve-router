@@ -5,6 +5,4 @@ services:
       - "${PORT:-3000}:${PORT:-3000}"
     env_file:
       - .env
-    extra_hosts:
-      - "host.docker.internal:172.17.0.1"
     restart: unless-stopped
